@@ -8,18 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Pokemon } from "../types";
+import { capitalize, fetchWithCache } from "../utils/api";
 import { getTypeColor } from "../utils/typeColors";
-
-interface Pokemon {
-  name: string;
-  sprites: {
-    front_default: string;
-  };
-  types: { type: { name: string } }[];
-  height: number;
-  weight: number;
-  abilities: { ability: { name: string } }[];
-}
 
 export default function PokemonDetail() {
   const { id } = useLocalSearchParams();
@@ -29,8 +20,9 @@ export default function PokemonDetail() {
   useEffect(() => {
     const fetchPokemon = async () => {
       try {
-        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-        const data: Pokemon = await response.json();
+        const data: Pokemon = await fetchWithCache(
+          `https://pokeapi.co/api/v2/pokemon/${id}`,
+        );
         setPokemon(data);
       } catch (error) {
         console.error(error);
@@ -48,20 +40,18 @@ export default function PokemonDetail() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       <TouchableOpacity onPress={() => router.back()}>
         <Text
           style={{
             fontSize: 18,
-            color: "#0b5fff",
-            marginLeft: 20,
-            marginTop: 45,
+            color: "blue",
           }}
         >
           Back
         </Text>
       </TouchableOpacity>
-      <ScrollView style={styles.container}>
+      <ScrollView>
         <View
           style={[
             styles.card,
@@ -72,7 +62,7 @@ export default function PokemonDetail() {
             source={{ uri: pokemon.sprites.front_default }}
             style={styles.image}
           />
-          <Text style={styles.name}>{pokemon.name}</Text>
+          <Text style={styles.name}>{capitalize(pokemon.name)}</Text>
           <Text style={styles.detail}>Height: {pokemon.height / 10} m</Text>
           <Text style={styles.detail}>Weight: {pokemon.weight / 10} kg</Text>
           <Text style={styles.detail}>

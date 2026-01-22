@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,33 +9,48 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { HistoryPokemon, Pokemon } from "../types";
+import { capitalize, fetchWithCache } from "../utils/api";
 import { getTypeColor } from "../utils/typeColors";
 
-interface Pokemon {
-  name: string;
-  sprites: {
-    front_default: string;
-  };
-  types?: { type: { name: string } }[];
-}
+const PokemonCard = memo(({ pokemon }: { pokemon: Pokemon }) => (
+  <TouchableOpacity
+    style={[
+      styles.card,
+      { backgroundColor: getTypeColor(pokemon.types?.[0]?.type.name) },
+    ]}
+    onPress={() =>
+      router.push({
+        pathname: "/pokemon/[id]",
+        params: { id: pokemon.name },
+      })
+    }
+  >
+    <Image
+      source={{ uri: pokemon.sprites.front_default }}
+      style={styles.image}
+    />
+    <Text style={styles.name}>{capitalize(pokemon.name)}</Text>
+  </TouchableOpacity>
+));
+PokemonCard.displayName = "PokemonCard";
 
 export default function Index() {
   const [search, setSearch] = useState("");
   const [pokemon, setPokemon] = useState<Pokemon | null>(null);
+  const [focused, setFocused] = useState(false);
 
   const searchPokemon = async () => {
     if (!search.trim()) return;
     try {
-      const response = await fetch(
+      const data: Pokemon = await fetchWithCache(
         `https://pokeapi.co/api/v2/pokemon/${search.toLowerCase()}`,
       );
-      if (!response.ok) throw new Error("Not found");
-      const data: Pokemon = await response.json();
       setPokemon(data);
-      const history = JSON.parse(
+      const history: HistoryPokemon[] = JSON.parse(
         (await AsyncStorage.getItem("history")) || "[]",
       );
-      const exists = history.find((p: Pokemon) => p.name === data.name);
+      const exists = history.some((p) => p.name === data.name);
       if (!exists) {
         history.push({
           name: data.name,
@@ -44,7 +59,7 @@ export default function Index() {
         });
         await AsyncStorage.setItem("history", JSON.stringify(history));
       }
-    } catch (error) {
+    } catch {
       alert("Pokemon not found");
       setPokemon(null);
     }
@@ -54,7 +69,9 @@ export default function Index() {
     <View style={styles.container}>
       <Text style={styles.title}>PokeDex</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, focused && styles.inputFocused]}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         value={search}
         onChangeText={setSearch}
         placeholder="Search Pokemon"
@@ -63,26 +80,7 @@ export default function Index() {
       <TouchableOpacity style={styles.button} onPress={searchPokemon}>
         <Text style={styles.buttonText}>Search</Text>
       </TouchableOpacity>
-      {pokemon && (
-        <TouchableOpacity
-          style={[
-            styles.card,
-            { backgroundColor: getTypeColor(pokemon.types?.[0]?.type.name) },
-          ]}
-          onPress={() =>
-            router.push({
-              pathname: "/pokemon/[id]",
-              params: { id: pokemon.name },
-            })
-          }
-        >
-          <Image
-            source={{ uri: pokemon.sprites.front_default }}
-            style={styles.image}
-          />
-          <Text style={styles.name}>{pokemon.name}</Text>
-        </TouchableOpacity>
-      )}
+      {pokemon && <PokemonCard pokemon={pokemon} />}
     </View>
   );
 }
@@ -92,18 +90,30 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     alignItems: "center",
+    paddingTop: 100,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: "blue",
   },
   input: {
-    width: "100%",
+    width: "80%",
     height: 40,
-    borderColor: "gray",
+    borderColor: "blue",
+    borderRadius: 5,
     borderWidth: 1,
     marginBottom: 10,
     paddingHorizontal: 10,
   },
+  inputFocused: {
+    borderColor: "blue",
+  },
   button: {
     backgroundColor: "blue",
     padding: 10,
+    paddingHorizontal: 20,
     borderRadius: 5,
     marginBottom: 20,
   },
@@ -133,10 +143,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginTop: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
   },
 });

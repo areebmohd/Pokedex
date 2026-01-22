@@ -3,18 +3,20 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { getTypeColor } from "../utils/typeColors";
 
 interface Pokemon {
   name: string;
   sprites: {
     front_default: string;
   };
+  types?: { type: { name: string } }[];
 }
 
 export default function Index() {
@@ -35,7 +37,11 @@ export default function Index() {
       );
       const exists = history.find((p: Pokemon) => p.name === data.name);
       if (!exists) {
-        history.push({ name: data.name, image: data.sprites.front_default });
+        history.push({
+          name: data.name,
+          image: data.sprites.front_default,
+          types: data.types,
+        });
         await AsyncStorage.setItem("history", JSON.stringify(history));
       }
     } catch (error) {
@@ -59,7 +65,10 @@ export default function Index() {
       </TouchableOpacity>
       {pokemon && (
         <TouchableOpacity
-          style={styles.card}
+          style={[
+            styles.card,
+            { backgroundColor: getTypeColor(pokemon.types?.[0]?.type.name) },
+          ]}
           onPress={() =>
             router.push({
               pathname: "/pokemon/[id]",
@@ -104,9 +113,17 @@ const styles = StyleSheet.create({
   },
   card: {
     alignItems: "center",
-    padding: 20,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 12,
+    width: "100%",
+    flexDirection: "row",
+    gap: 12,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    marginVertical: 10,
   },
   image: {
     width: 100,

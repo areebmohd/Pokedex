@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { getTypeColor } from "../utils/typeColors";
 
 interface Pokemon {
   name: string;
@@ -50,13 +51,23 @@ export default function PokemonDetail() {
     <View style={{ flex: 1 }}>
       <TouchableOpacity onPress={() => router.back()}>
         <Text
-          style={{ fontSize: 18, color: "blue", marginLeft: 20, marginTop: 45 }}
+          style={{
+            fontSize: 18,
+            color: "#0b5fff",
+            marginLeft: 20,
+            marginTop: 45,
+          }}
         >
           Back
         </Text>
       </TouchableOpacity>
       <ScrollView style={styles.container}>
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: getTypeColor(pokemon.types?.[0]?.type.name) },
+          ]}
+        >
           <Image
             source={{ uri: pokemon.sprites.front_default }}
             style={styles.image}
@@ -84,8 +95,13 @@ const styles = StyleSheet.create({
   card: {
     alignItems: "center",
     padding: 20,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 10,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    marginVertical: 16,
   },
   image: {
     width: 150,
